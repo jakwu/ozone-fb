@@ -9,17 +9,20 @@
 #include "ui/gfx/geometry/rect.h"
 #include "ui/gfx/native_widget_types.h"
 #include "ui/platform_window/platform_window.h"
+#include "ui/events/platform/platform_event_dispatcher.h"
+#include "ui/events/ozone/evdev/event_factory_evdev.h"
 
 namespace ui {
 
 class PlatformWindowDelegate;
 class SurfaceFactoryFb;
 
-class PlatformWindowFb : public PlatformWindow {
+class PlatformWindowFb : public PlatformWindow, public PlatformEventDispatcher {
  public:
   PlatformWindowFb(PlatformWindowDelegate* delegate,
-             SurfaceFactoryFb* surface_factory,
-             const gfx::Rect& bounds);
+                   SurfaceFactoryFb* surface_factory,
+                   EventFactoryEvdev* event_factory,
+                   const gfx::Rect& bounds);
   ~PlatformWindowFb() override;
 
   // PlatformWindow:
@@ -38,9 +41,14 @@ class PlatformWindowFb : public PlatformWindow {
   void MoveCursorTo(const gfx::Point& location) override;
   void ConfineCursorToBounds(const gfx::Rect& bounds) override;
 
+  // PlatformEventDispatcher:
+  bool CanDispatchEvent(const PlatformEvent& event) override;
+  uint32_t DispatchEvent(const PlatformEvent& event) override;
+
  private:
   PlatformWindowDelegate* delegate_;
   SurfaceFactoryFb* surface_factory_;
+  EventFactoryEvdev* event_factory_;
   gfx::Rect bounds_;
   gfx::AcceleratedWidget widget_;
 
