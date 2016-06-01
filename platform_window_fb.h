@@ -5,17 +5,16 @@
 #ifndef UI_OZONE_PLATFORM_WINDOW_FB_H_
 #define UI_OZONE_PLATFORM_WINDOW_FB_H_
 
-#include "base/files/file_path.h"
 #include "ui/gfx/geometry/rect.h"
 #include "ui/gfx/native_widget_types.h"
 #include "ui/platform_window/platform_window.h"
 #include "ui/events/platform/platform_event_dispatcher.h"
-#include "ui/events/ozone/evdev/event_factory_evdev.h"
 
 namespace ui {
 
 class PlatformWindowDelegate;
 class SurfaceFactoryFb;
+class EventFactoryEvdev;
 
 class PlatformWindowFb : public PlatformWindow, public PlatformEventDispatcher {
  public:

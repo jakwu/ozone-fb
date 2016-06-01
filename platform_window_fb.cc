@@ -10,8 +10,7 @@
 #include "ui/events/platform/platform_event_source.h"
 #include "ui/platform_window/platform_window_delegate.h"
 #include "ui/events/devices/device_data_manager.h"
-
-#include <string>
+#include "ui/events/ozone/evdev/event_factory_evdev.h"
 
 
 namespace ui {
