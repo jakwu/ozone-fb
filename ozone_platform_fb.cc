@@ -16,6 +16,7 @@
 #include "ui/events/ozone/layout/keyboard_layout_engine_manager.h"
 #include "ui/events/ozone/layout/stub/stub_keyboard_layout_engine.h"
 #include "ui/ozone/public/ozone_platform.h"
+#include "ui/ozone/common/stub_overlay_manager.h"
 #include "ui/ozone/common/native_display_delegate_ozone.h"
 #include "ui/ozone/public/ozone_switches.h"
 
@@ -37,6 +38,9 @@ class OzonePlatformFb : public OzonePlatform {
   // OzonePlatform:
   ui::SurfaceFactoryOzone* GetSurfaceFactoryOzone() override {
     return surface_factory_ozone_.get();
+  }
+  OverlayManagerOzone* GetOverlayManager() override {
+    return overlay_manager_.get();
   }
   CursorFactoryOzone* GetCursorFactoryOzone() override {
     return cursor_factory_ozone_.get();
@@ -63,7 +67,7 @@ class OzonePlatformFb : public OzonePlatform {
                              bounds));
   }
   scoped_ptr<NativeDisplayDelegate> CreateNativeDisplayDelegate() override {
-    return scoped_ptr<NativeDisplayDelegate>(new NativeDisplayDelegateOzone());
+    return make_scoped_ptr(new NativeDisplayDelegateOzone());
   }
 
   void InitializeUI() override {
@@ -76,7 +80,7 @@ class OzonePlatformFb : public OzonePlatform {
     event_factory_ozone_.reset(new EventFactoryEvdev(
         NULL, device_manager_.get(),
         KeyboardLayoutEngineManager::GetKeyboardLayoutEngine()));
-
+    overlay_manager_.reset(new StubOverlayManager());
     //cursor_factory_ozone_.reset(new BitmapCursorFactoryOzone);
     cursor_factory_ozone_.reset(new CursorFactoryOzone);
     gpu_platform_support_host_.reset(CreateStubGpuPlatformSupportHost());
@@ -94,13 +98,14 @@ class OzonePlatformFb : public OzonePlatform {
   scoped_ptr<CursorFactoryOzone> cursor_factory_ozone_;
   scoped_ptr<GpuPlatformSupport> gpu_platform_support_;
   scoped_ptr<GpuPlatformSupportHost> gpu_platform_support_host_;
+  scoped_ptr<OverlayManagerOzone> overlay_manager_;
 
   DISALLOW_COPY_AND_ASSIGN(OzonePlatformFb);
 };
 
 }  // namespace
 
-OzonePlatform* CreateOzonePlatformEgl() {
+OzonePlatform* CreateOzonePlatformFb() {
   std::string fb_dev;
   base::CommandLine* cmd = base::CommandLine::ForCurrentProcess();
   

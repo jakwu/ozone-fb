@@ -9,6 +9,7 @@
 #include "third_party/skia/include/core/SkSurface.h"
 #include "ui/gfx/skia_util.h"
 #include "ui/gfx/vsync_provider.h"
+#include "ui/ozone/public/native_pixmap.h"
 #include "ui/ozone/public/surface_ozone_canvas.h"
 
 namespace ui {
@@ -22,24 +23,56 @@ class FbSurface : public SurfaceOzoneCanvas {
 
   // SurfaceOzoneCanvas overrides:
   void ResizeCanvas(const gfx::Size& viewport_size) override {
-    surface_ = skia::AdoptRef(SkSurface::NewRaster(SkImageInfo::MakeN32Premul(
-        viewport_size.width(), viewport_size.height())));
+    surface_ = SkSurface::MakeRaster(SkImageInfo::MakeN32Premul(
+        viewport_size.width(), viewport_size.height()));
   }
-  skia::RefPtr<SkSurface> GetSurface() override { return surface_; }
+  sk_sp<SkSurface> GetSurface() override { return surface_; }
   void PresentCanvas(const gfx::Rect& damage) override {
     SkImageInfo info = framebuffer_->GetImageInfo();
-    if (!surface_->readPixels(info, framebuffer_->GetData(), framebuffer_->GetDataSize() / info.height(), 0, 0)) {
+    if (!surface_->getCanvas()->readPixels(info, framebuffer_->GetData(), framebuffer_->GetDataSize() / info.height(), 0, 0)) {
       LOG(ERROR) << "Failed to read pixel data";
     }
   }
   scoped_ptr<gfx::VSyncProvider> CreateVSyncProvider() override {
-    return scoped_ptr<gfx::VSyncProvider>();
+    return nullptr;
   }
 
  private:
   FrameBuffer* framebuffer_;
-  skia::RefPtr<SkSurface> surface_;
+  sk_sp<SkSurface> surface_;
 };
+
+#if 0
+class TestPixmap : public ui::NativePixmap {
+ public:
+  TestPixmap(gfx::BufferFormat format) : format_(format) {}
+
+  void* GetEGLClientBuffer() const override { return nullptr; }
+  int GetDmaBufFd() const override { return -1; }
+  int GetDmaBufPitch() const override { return 0; }
+  gfx::BufferFormat GetBufferFormat() const override { return format_; }
+  gfx::Size GetBufferSize() const override { return gfx::Size(); }
+  bool ScheduleOverlayPlane(gfx::AcceleratedWidget widget,
+                            int plane_z_order,
+                            gfx::OverlayTransform plane_transform,
+                            const gfx::Rect& display_bounds,
+                            const gfx::RectF& crop_rect) override {
+    return true;
+  }
+  void SetProcessingCallback(
+      const ProcessingCallback& processing_callback) override {}
+  gfx::NativePixmapHandle ExportHandle() override {
+    return gfx::NativePixmapHandle();
+  }
+
+ private:
+  ~TestPixmap() override {}
+
+  gfx::BufferFormat format_;
+
+  DISALLOW_COPY_AND_ASSIGN(TestPixmap);
+};
+#endif
 
 }  // namespace
 
@@ -76,6 +109,15 @@ bool SurfaceFactoryFb::LoadEGLGLES2Bindings(
     AddGLLibraryCallback add_gl_library,
     SetGLGetProcAddressProcCallback set_gl_get_proc_address) {
   return false;
+}
+
+scoped_refptr<NativePixmap> SurfaceFactoryFb::CreateNativePixmap(
+    gfx::AcceleratedWidget widget,
+    gfx::Size size,
+    gfx::BufferFormat format,
+    gfx::BufferUsage usage) {
+  NOTIMPLEMENTED();
+  return nullptr;
 }
 
 }  // namespace ui

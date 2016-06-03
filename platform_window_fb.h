@@ -27,6 +27,7 @@ class PlatformWindowFb : public PlatformWindow, public PlatformEventDispatcher {
   // PlatformWindow:
   gfx::Rect GetBounds() override;
   void SetBounds(const gfx::Rect& bounds) override;
+  void SetTitle(const base::string16& title) override;
   void Show() override;
   void Hide() override;
   void Close() override;
@@ -39,6 +40,7 @@ class PlatformWindowFb : public PlatformWindow, public PlatformEventDispatcher {
   void SetCursor(PlatformCursor cursor) override;
   void MoveCursorTo(const gfx::Point& location) override;
   void ConfineCursorToBounds(const gfx::Rect& bounds) override;
+  PlatformImeController* GetPlatformImeController() override;
 
   // PlatformEventDispatcher:
   bool CanDispatchEvent(const PlatformEvent& event) override;
@@ -49,7 +51,7 @@ class PlatformWindowFb : public PlatformWindow, public PlatformEventDispatcher {
   SurfaceFactoryFb* surface_factory_;
   EventFactoryEvdev* event_factory_;
   gfx::Rect bounds_;
-  gfx::AcceleratedWidget widget_;
+  gfx::AcceleratedWidget window_id_;
 
   DISALLOW_COPY_AND_ASSIGN(PlatformWindowFb);
 };

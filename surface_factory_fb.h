@@ -5,8 +5,8 @@
 #ifndef UI_OZONE_PLATFORM_SURFACE_FACTORY_FB_H_
 #define UI_OZONE_PLATFORM_SURFACE_FACTORY_FB_H_
 
-#include "egl_window.h"
-#include "egl_wrapper.h"
+#include "platform_window_fb.h"
+#include "frame_buffer.h"
 
 #include "base/id_map.h"
 #include "base/memory/scoped_ptr.h"
@@ -38,6 +38,11 @@ class SurfaceFactoryFb : public SurfaceFactoryOzone {
   bool LoadEGLGLES2Bindings(
       AddGLLibraryCallback add_gl_library,
       SetGLGetProcAddressProcCallback set_gl_get_proc_address) override;
+  scoped_refptr<NativePixmap> CreateNativePixmap(
+      gfx::AcceleratedWidget widget,
+      gfx::Size size,
+      gfx::BufferFormat format,
+      gfx::BufferUsage usage) override;
 
  private:
   IDMap<PlatformWindowFb> windows_;
