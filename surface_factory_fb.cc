@@ -27,10 +27,12 @@ class FbSurface : public SurfaceOzoneCanvas {
     surface_ = skia::AdoptRef(SkSurface::NewRaster(SkImageInfo::MakeN32Premul(
         viewport_size.width(), viewport_size.height())));
   }
-  skia::RefPtr<SkSurface> GetSurface() override { return surface_; }
+  skia::RefPtr<SkCanvas> GetCanvas() override {
+    return skia::SharePtr(surface_->getCanvas());
+  }
   void PresentCanvas(const gfx::Rect& damage) override {
     SkImageInfo info = framebuffer_->GetImageInfo();
-    if (!surface_->readPixels(info, framebuffer_->GetData(), framebuffer_->GetDataSize() / info.height(), 0, 0)) {
+    if (!surface_->getCanvas()->readPixels(info, framebuffer_->GetData(), framebuffer_->GetDataSize() / info.height(), 0, 0)) {
       LOG(ERROR) << "Failed to read pixel data";
     }
   }

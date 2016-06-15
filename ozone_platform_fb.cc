@@ -14,8 +14,6 @@
 #include "ui/ozone/public/gpu_platform_support_host.h"
 #include "ui/events/ozone/device/device_manager.h"
 #include "ui/events/ozone/evdev/event_factory_evdev.h"
-#include "ui/events/ozone/layout/keyboard_layout_engine_manager.h"
-#include "ui/events/ozone/layout/stub/stub_keyboard_layout_engine.h"
 #include "ui/ozone/public/ozone_platform.h"
 #include "ui/ozone/common/native_display_delegate_ozone.h"
 #include "ui/ozone/public/ozone_switches.h"
@@ -42,17 +40,11 @@ class OzonePlatformFb : public OzonePlatform {
   CursorFactoryOzone* GetCursorFactoryOzone() override {
     return cursor_factory_ozone_.get();
   }
-  InputController* GetInputController() override {
-    return event_factory_ozone_->input_controller();
-  }
   GpuPlatformSupport* GetGpuPlatformSupport() override {
     return gpu_platform_support_.get();
   }
   GpuPlatformSupportHost* GetGpuPlatformSupportHost() override {
     return gpu_platform_support_host_.get();
-  }
-  scoped_ptr<SystemInputInjector> CreateSystemInputInjector() override {
-    return nullptr;  // no input injection support.
   }
   scoped_ptr<PlatformWindow> CreatePlatformWindow(
       PlatformWindowDelegate* delegate,
@@ -71,13 +63,9 @@ class OzonePlatformFb : public OzonePlatform {
     window_manager_.reset(new PlatformWindowManager());
     surface_factory_ozone_.reset(new SurfaceFactoryFb(window_manager_.get()));
     surface_factory_ozone_->Initialize(fb_dev_);
-    // This unbreaks tests that create their own.
-    KeyboardLayoutEngineManager::SetKeyboardLayoutEngine(
-        make_scoped_ptr(new StubKeyboardLayoutEngine()));
     device_manager_ = CreateDeviceManager();
-    event_factory_ozone_.reset(new EventFactoryEvdev(
-        NULL, device_manager_.get(),
-        KeyboardLayoutEngineManager::GetKeyboardLayoutEngine()));
+    event_factory_ozone_.reset(
+        new EventFactoryEvdev(NULL, device_manager_.get()));
 
     //cursor_factory_ozone_.reset(new BitmapCursorFactoryOzone);
     cursor_factory_ozone_.reset(new CursorFactoryOzone);
