@@ -69,6 +69,9 @@ class OzonePlatformFb : public OzonePlatform {
   scoped_ptr<NativeDisplayDelegate> CreateNativeDisplayDelegate() override {
     return make_scoped_ptr(new NativeDisplayDelegateOzone());
   }
+  base::ScopedFD OpenClientNativePixmapDevice() const override {
+    return base::ScopedFD();
+  }
 
   void InitializeUI() override {
     surface_factory_ozone_.reset(new SurfaceFactoryFb());
@@ -81,7 +84,6 @@ class OzonePlatformFb : public OzonePlatform {
         NULL, device_manager_.get(),
         KeyboardLayoutEngineManager::GetKeyboardLayoutEngine()));
     overlay_manager_.reset(new StubOverlayManager());
-    //cursor_factory_ozone_.reset(new BitmapCursorFactoryOzone);
     cursor_factory_ozone_.reset(new CursorFactoryOzone);
     gpu_platform_support_host_.reset(CreateStubGpuPlatformSupportHost());
   }

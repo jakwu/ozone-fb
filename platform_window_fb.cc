@@ -22,10 +22,15 @@ void ScaleTouchEvent(TouchEvent* event, const gfx::SizeF& size) {
        DeviceDataManager::GetInstance()->touchscreen_devices()) {
     if (device.id == event->source_device_id()) {
       gfx::SizeF touchscreen_size = gfx::SizeF(device.size);
-      gfx::Transform transform;
-      transform.Scale(size.width() / touchscreen_size.width(),
-                      size.height() / touchscreen_size.height());
-      event->UpdateForRootTransform(transform);
+      gfx::PointF location = event->location_f();
+
+      location.Scale(size.width() / touchscreen_size.width(),
+                     size.height() / touchscreen_size.height());
+      double ratio = std::sqrt(size.GetArea() / touchscreen_size.GetArea());
+
+      event->set_location(location);
+      event->set_radius_x(event->pointer_details().radius_x() * ratio);
+      event->set_radius_y(event->pointer_details().radius_y() * ratio);
       return;
     }
   }

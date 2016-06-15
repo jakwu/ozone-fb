@@ -1,0 +1,15 @@
+diff --git a/media/ozone/media_ozone_platform.cc b/media/ozone/media_ozone_platform.cc
+index 15d52c6..5f2f036 100644
+--- a/media/ozone/media_ozone_platform.cc
++++ b/media/ozone/media_ozone_platform.cc
+@@ -28,6 +28,10 @@ class MediaOzonePlatformStub : public MediaOzonePlatform {
+ // The following statics are just convenient stubs, declared by the
+ // generate_constructor_list.py script. They should be removed once the
+ // internal Ozone platforms decide to actually implement their media specifics.
++MediaOzonePlatform* CreateMediaOzonePlatformFb() {
++  return new MediaOzonePlatformStub;
++}
++
+ MediaOzonePlatform* CreateMediaOzonePlatformCaca() {
+   return new MediaOzonePlatformStub;
+ }

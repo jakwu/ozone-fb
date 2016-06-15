@@ -19,10 +19,8 @@
         'OZONE_IMPLEMENTATION',
       ],
       'dependencies': [
-        '<(DEPTH)/ui/ozone/ozone.gyp:ozone_base',
-        '<(DEPTH)/ui/ozone/ozone.gyp:ozone_common',
         '<(DEPTH)/base/base.gyp:base',
-        '<(DEPTH)/ui/events/devices/events_devices.gyp:events_devices',
+        '<(DEPTH)/ui/base/ui_base.gyp:ui_base',
         '<(DEPTH)/ui/events/events.gyp:events',
         '<(DEPTH)/ui/events/ozone/events_ozone.gyp:events_ozone_evdev',
         '<(DEPTH)/ui/events/ozone/events_ozone.gyp:events_ozone_layout',
