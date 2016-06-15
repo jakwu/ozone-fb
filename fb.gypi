@@ -31,6 +31,8 @@
         'surface_factory_fb.h',
         'platform_window_fb.cc',
         'platform_window_fb.h',
+        'platform_window_manager.cc',
+        'platform_window_manager.h',
         'frame_buffer.cc',
         'frame_buffer.h',
       ],
