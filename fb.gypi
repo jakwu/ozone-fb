@@ -21,6 +21,7 @@
       'dependencies': [
         '<(DEPTH)/base/base.gyp:base',
         '<(DEPTH)/ui/base/ui_base.gyp:ui_base',
+        '<(DEPTH)/ui/events/devices/events_devices.gyp:events_devices',
         '<(DEPTH)/ui/events/events.gyp:events',
         '<(DEPTH)/ui/events/ozone/events_ozone.gyp:events_ozone_evdev',
         '<(DEPTH)/ui/events/ozone/events_ozone.gyp:events_ozone_layout',
@@ -36,6 +37,8 @@
         'surface_factory_fb.h',
         'platform_window_fb.cc',
         'platform_window_fb.h',
+        'platform_window_manager.cc',
+        'platform_window_manager.h',
         'frame_buffer.cc',
         'frame_buffer.h',
       ],

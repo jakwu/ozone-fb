@@ -5,32 +5,24 @@
 #ifndef UI_OZONE_PLATFORM_SURFACE_FACTORY_FB_H_
 #define UI_OZONE_PLATFORM_SURFACE_FACTORY_FB_H_
 
-#include "platform_window_fb.h"
 #include "frame_buffer.h"
 
-#include "base/id_map.h"
-#include "base/memory/scoped_ptr.h"
-#include "ui/gfx/native_widget_types.h"
 #include "ui/ozone/public/surface_factory_ozone.h"
 
 #include <string>
 
-
 namespace ui {
+
+  class PlatformWindowManager;
 
 class SurfaceFactoryFb : public SurfaceFactoryOzone {
  public:
   SurfaceFactoryFb();
+  explicit SurfaceFactoryFb(PlatformWindowManager* window_manager);
   ~SurfaceFactoryFb() override;
 
   // Initialize (mainly check that we have a place to write output to).
   void Initialize(const std::string& fb_dev);
-
-  // Register a new window. Returns the window id.
-  int32_t AddWindow(PlatformWindowFb* window);
-
-  // Remove a window.
-  void RemoveWindow(int32_t window_id, PlatformWindowFb* window);
 
   // SurfaceFactoryOzone:
   scoped_ptr<SurfaceOzoneCanvas> CreateCanvasForWidget(
@@ -40,7 +32,7 @@ class SurfaceFactoryFb : public SurfaceFactoryOzone {
       SetGLGetProcAddressProcCallback set_gl_get_proc_address) override;
 
  private:
-  IDMap<PlatformWindowFb> windows_;
+  PlatformWindowManager* window_manager_;
   scoped_ptr<FrameBuffer> frameBuffer_;
 
   DISALLOW_COPY_AND_ASSIGN(SurfaceFactoryFb);

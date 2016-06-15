@@ -3,6 +3,8 @@
 // found in the LICENSE file.
 
 #include "surface_factory_fb.h"
+#include "platform_window_fb.h"
+#include "platform_window_manager.h"
 
 #include "base/threading/worker_pool.h"
 #include "third_party/skia/include/core/SkCanvas.h"
@@ -43,7 +45,11 @@ class FbSurface : public SurfaceOzoneCanvas {
 
 }  // namespace
 
-SurfaceFactoryFb::SurfaceFactoryFb() {
+SurfaceFactoryFb::SurfaceFactoryFb() : SurfaceFactoryFb(nullptr) {
+}
+
+SurfaceFactoryFb::SurfaceFactoryFb(PlatformWindowManager* window_manager)
+  : window_manager_(window_manager) {
 }
 
 SurfaceFactoryFb::~SurfaceFactoryFb() {
@@ -56,18 +62,9 @@ void SurfaceFactoryFb::Initialize(const std::string& fb_dev) {
   }
 }
 
-int32_t SurfaceFactoryFb::AddWindow(PlatformWindowFb* window) {
-  return windows_.Add(window);
-}
-
-void SurfaceFactoryFb::RemoveWindow(int32_t window_id, PlatformWindowFb* window) {
-  DCHECK_EQ(window, windows_.Lookup(window_id));
-  windows_.Remove(window_id);
-}
-
 scoped_ptr<SurfaceOzoneCanvas> SurfaceFactoryFb::CreateCanvasForWidget(
     gfx::AcceleratedWidget widget) {
-  PlatformWindowFb* window = windows_.Lookup(widget);
+  PlatformWindowFb* window = window_manager_->GetWindow(widget);
   DCHECK(window);
   return make_scoped_ptr<SurfaceOzoneCanvas>(new FbSurface(frameBuffer_.get()));
 }

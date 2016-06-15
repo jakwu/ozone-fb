@@ -5,6 +5,7 @@
 #include "ozone_platform_fb.h"
 #include "platform_window_fb.h"
 #include "surface_factory_fb.h"
+#include "platform_window_manager.h"
 
 #include "base/command_line.h"
 #include "base/environment.h"
@@ -62,7 +63,7 @@ class OzonePlatformFb : public OzonePlatform {
       const gfx::Rect& bounds) override {
     return make_scoped_ptr<PlatformWindow>(
         new PlatformWindowFb(delegate,
-                             surface_factory_ozone_.get(),
+                             window_manager_.get(),
                              event_factory_ozone_.get(),
                              bounds));
   }
@@ -74,7 +75,8 @@ class OzonePlatformFb : public OzonePlatform {
   }
 
   void InitializeUI() override {
-    surface_factory_ozone_.reset(new SurfaceFactoryFb());
+    window_manager_.reset(new PlatformWindowManager());
+    surface_factory_ozone_.reset(new SurfaceFactoryFb(window_manager_.get()));
     surface_factory_ozone_->Initialize(fb_dev_);
     // This unbreaks tests that create their own.
     KeyboardLayoutEngineManager::SetKeyboardLayoutEngine(
@@ -89,11 +91,14 @@ class OzonePlatformFb : public OzonePlatform {
   }
 
   void InitializeGPU() override {
+    if (!surface_factory_ozone_)
+      surface_factory_ozone_.reset(new SurfaceFactoryFb());
     gpu_platform_support_.reset(CreateStubGpuPlatformSupport());
   }
 
  private:
   std::string fb_dev_;
+  scoped_ptr<PlatformWindowManager> window_manager_;
   scoped_ptr<DeviceManager> device_manager_;
   scoped_ptr<EventFactoryEvdev> event_factory_ozone_;
   scoped_ptr<SurfaceFactoryFb> surface_factory_ozone_;

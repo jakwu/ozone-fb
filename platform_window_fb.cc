@@ -3,7 +3,7 @@
 // found in the LICENSE file.
 
 #include "platform_window_fb.h"
-#include "surface_factory_fb.h"
+#include "platform_window_manager.h"
 
 #include "ui/events/ozone/events_ozone.h"
 #include "base/strings/string_number_conversions.h"
@@ -38,21 +38,21 @@ void ScaleTouchEvent(TouchEvent* event, const gfx::SizeF& size) {
 
 
 PlatformWindowFb::PlatformWindowFb(PlatformWindowDelegate* delegate,
-                                   SurfaceFactoryFb* surface_factory,
+                                   PlatformWindowManager* window_manager,
                                    EventFactoryEvdev* event_factory,
                                    const gfx::Rect& bounds)
     : delegate_(delegate)
-    , surface_factory_(surface_factory)
+    , window_manager_(window_manager)
     , event_factory_(event_factory)
     , bounds_(bounds) {
-  window_id_ = surface_factory_->AddWindow(this);
+  window_id_ = window_manager_->AddWindow(this);
   delegate_->OnAcceleratedWidgetAvailable(window_id_, 1.f);
   ui::PlatformEventSource::GetInstance()->AddPlatformEventDispatcher(this);
 }
 
 PlatformWindowFb::~PlatformWindowFb() {
   ui::PlatformEventSource::GetInstance()->RemovePlatformEventDispatcher(this);
-  surface_factory_->RemoveWindow(window_id_, this);
+  window_manager_->RemoveWindow(window_id_, this);
 }
 
 gfx::Rect PlatformWindowFb::GetBounds() {
