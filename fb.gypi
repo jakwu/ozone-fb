@@ -13,7 +13,7 @@
   },
   'targets': [
     {
-      'target_name': 'ozone_platform_egl',
+      'target_name': 'ozone_platform_fb',
       'type': 'static_library',
       'defines': [
         'OZONE_IMPLEMENTATION',
