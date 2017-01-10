@@ -5,6 +5,7 @@
 #ifndef UI_OZONE_FB_PLATFORM_WINDOW_FB_H_
 #define UI_OZONE_FB_PLATFORM_WINDOW_FB_H_
 
+#include "base/macros.h"
 #include "ui/gfx/geometry/rect.h"
 #include "ui/gfx/native_widget_types.h"
 #include "ui/platform_window/platform_window.h"

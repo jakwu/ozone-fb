@@ -6,7 +6,7 @@
 #define UI_OZONE_PLATFORM_FB_PLATFORM_WINDOW_MANAGER_H_
 
 #include "base/id_map.h"
-#include "base/memory/scoped_ptr.h"
+#include "base/macros.h"
 #include "base/threading/thread_checker.h"
 #include "ui/gfx/native_widget_types.h"
 #include "ui/ozone/public/surface_factory_ozone.h"

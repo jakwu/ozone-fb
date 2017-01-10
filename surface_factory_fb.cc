@@ -6,6 +6,7 @@
 #include "platform_window_fb.h"
 #include "platform_window_manager.h"
 
+#include "base/memory/ptr_util.h"
 #include "base/threading/worker_pool.h"
 #include "third_party/skia/include/core/SkCanvas.h"
 #include "third_party/skia/include/core/SkSurface.h"

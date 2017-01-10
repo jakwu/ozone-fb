@@ -7,6 +7,7 @@
 
 #include "frame_buffer.h"
 
+#include "base/macros.h"
 #include "ui/ozone/public/surface_factory_ozone.h"
 
 #include <string>

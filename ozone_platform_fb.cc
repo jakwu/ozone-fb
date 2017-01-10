@@ -8,6 +8,8 @@
 #include "platform_window_manager.h"
 
 #include "base/command_line.h"
+#include "base/macros.h"
+#include "base/memory/ptr_util.h"
 #include "base/environment.h"
 #include "ui/ozone/public/cursor_factory_ozone.h"
 #include "ui/ozone/public/gpu_platform_support.h"
@@ -77,7 +79,7 @@ class OzonePlatformFb : public OzonePlatform {
     surface_factory_ozone_->Initialize(fb_dev_);
     // This unbreaks tests that create their own.
     KeyboardLayoutEngineManager::SetKeyboardLayoutEngine(
-        make_scoped_ptr(new StubKeyboardLayoutEngine()));
+        base::WrapUnique(new StubKeyboardLayoutEngine()));
     device_manager_ = CreateDeviceManager();
     event_factory_ozone_.reset(new EventFactoryEvdev(
         NULL, device_manager_.get(),
@@ -117,7 +119,7 @@ OzonePlatform* CreateOzonePlatformFb() {
     fb_dev = cmd->GetSwitchValueASCII(switches::kOzoneDumpFile);
   }
   if (fb_dev.empty()) {
-    scoped_ptr<base::Environment> env(base::Environment::Create());
+    std::unique_ptr<base::Environment> env(base::Environment::Create());
     env->GetVar(kPlatformFbDev, &fb_dev);
   }
   if (fb_dev.empty()) {
