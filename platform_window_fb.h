@@ -2,8 +2,8 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-#ifndef UI_OZONE_PLATFORM_WINDOW_FB_H_
-#define UI_OZONE_PLATFORM_WINDOW_FB_H_
+#ifndef UI_OZONE_FB_PLATFORM_WINDOW_FB_H_
+#define UI_OZONE_FB_PLATFORM_WINDOW_FB_H_
 
 #include "ui/gfx/geometry/rect.h"
 #include "ui/gfx/native_widget_types.h"
@@ -13,13 +13,13 @@
 namespace ui {
 
 class PlatformWindowDelegate;
-class SurfaceFactoryFb;
 class EventFactoryEvdev;
+class PlatformWindowManager;
 
 class PlatformWindowFb : public PlatformWindow, public PlatformEventDispatcher {
  public:
   PlatformWindowFb(PlatformWindowDelegate* delegate,
-                   SurfaceFactoryFb* surface_factory,
+                   PlatformWindowManager* window_manager,
                    EventFactoryEvdev* event_factory,
                    const gfx::Rect& bounds);
   ~PlatformWindowFb() override;
@@ -48,7 +48,7 @@ class PlatformWindowFb : public PlatformWindow, public PlatformEventDispatcher {
 
  private:
   PlatformWindowDelegate* delegate_;
-  SurfaceFactoryFb* surface_factory_;
+  PlatformWindowManager* window_manager_;
   EventFactoryEvdev* event_factory_;
   gfx::Rect bounds_;
   gfx::AcceleratedWidget window_id_;
@@ -58,4 +58,4 @@ class PlatformWindowFb : public PlatformWindow, public PlatformEventDispatcher {
 
 }  // namespace ui
 
-#endif  // UI_OZONE_PLATFORM_WINDOW_FB_H_
+#endif  // UI_OZONE_FB_PLATFORM_WINDOW_FB_H_

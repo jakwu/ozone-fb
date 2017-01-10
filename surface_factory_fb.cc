@@ -3,6 +3,8 @@
 // found in the LICENSE file.
 
 #include "surface_factory_fb.h"
+#include "platform_window_fb.h"
+#include "platform_window_manager.h"
 
 #include "base/threading/worker_pool.h"
 #include "third_party/skia/include/core/SkCanvas.h"
@@ -33,7 +35,7 @@ class FbSurface : public SurfaceOzoneCanvas {
       LOG(ERROR) << "Failed to read pixel data";
     }
   }
-  scoped_ptr<gfx::VSyncProvider> CreateVSyncProvider() override {
+  std::unique_ptr<gfx::VSyncProvider> CreateVSyncProvider() override {
     return nullptr;
   }
 
@@ -42,7 +44,6 @@ class FbSurface : public SurfaceOzoneCanvas {
   sk_sp<SkSurface> surface_;
 };
 
-#if 0
 class TestPixmap : public ui::NativePixmap {
  public:
   TestPixmap(gfx::BufferFormat format) : format_(format) {}
@@ -72,11 +73,14 @@ class TestPixmap : public ui::NativePixmap {
 
   DISALLOW_COPY_AND_ASSIGN(TestPixmap);
 };
-#endif
 
 }  // namespace
 
-SurfaceFactoryFb::SurfaceFactoryFb() {
+SurfaceFactoryFb::SurfaceFactoryFb() : SurfaceFactoryFb(nullptr) {
+}
+
+SurfaceFactoryFb::SurfaceFactoryFb(PlatformWindowManager* window_manager)
+  : window_manager_(window_manager) {
 }
 
 SurfaceFactoryFb::~SurfaceFactoryFb() {
@@ -89,20 +93,11 @@ void SurfaceFactoryFb::Initialize(const std::string& fb_dev) {
   }
 }
 
-int32_t SurfaceFactoryFb::AddWindow(PlatformWindowFb* window) {
-  return windows_.Add(window);
-}
-
-void SurfaceFactoryFb::RemoveWindow(int32_t window_id, PlatformWindowFb* window) {
-  DCHECK_EQ(window, windows_.Lookup(window_id));
-  windows_.Remove(window_id);
-}
-
-scoped_ptr<SurfaceOzoneCanvas> SurfaceFactoryFb::CreateCanvasForWidget(
+std::unique_ptr<SurfaceOzoneCanvas> SurfaceFactoryFb::CreateCanvasForWidget(
     gfx::AcceleratedWidget widget) {
-  PlatformWindowFb* window = windows_.Lookup(widget);
+  PlatformWindowFb* window = window_manager_->GetWindow(widget);
   DCHECK(window);
-  return make_scoped_ptr<SurfaceOzoneCanvas>(new FbSurface(frameBuffer_.get()));
+  return base::WrapUnique<SurfaceOzoneCanvas>(new FbSurface(frameBuffer_.get()));
 }
 
 bool SurfaceFactoryFb::LoadEGLGLES2Bindings(
@@ -116,8 +111,7 @@ scoped_refptr<NativePixmap> SurfaceFactoryFb::CreateNativePixmap(
     gfx::Size size,
     gfx::BufferFormat format,
     gfx::BufferUsage usage) {
-  NOTIMPLEMENTED();
-  return nullptr;
+  return new TestPixmap(format);
 }
 
 }  // namespace ui

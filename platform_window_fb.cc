@@ -3,7 +3,7 @@
 // found in the LICENSE file.
 
 #include "platform_window_fb.h"
-#include "surface_factory_fb.h"
+#include "platform_window_manager.h"
 
 #include "ui/events/ozone/events_ozone.h"
 #include "base/strings/string_number_conversions.h"
@@ -22,10 +22,15 @@ void ScaleTouchEvent(TouchEvent* event, const gfx::SizeF& size) {
        DeviceDataManager::GetInstance()->touchscreen_devices()) {
     if (device.id == event->source_device_id()) {
       gfx::SizeF touchscreen_size = gfx::SizeF(device.size);
-      gfx::Transform transform;
-      transform.Scale(size.width() / touchscreen_size.width(),
-                      size.height() / touchscreen_size.height());
-      event->UpdateForRootTransform(transform);
+      gfx::PointF location = event->location_f();
+
+      location.Scale(size.width() / touchscreen_size.width(),
+                     size.height() / touchscreen_size.height());
+      double ratio = std::sqrt(size.GetArea() / touchscreen_size.GetArea());
+
+      event->set_location(location);
+      event->set_radius_x(event->pointer_details().radius_x() * ratio);
+      event->set_radius_y(event->pointer_details().radius_y() * ratio);
       return;
     }
   }
@@ -33,21 +38,21 @@ void ScaleTouchEvent(TouchEvent* event, const gfx::SizeF& size) {
 
 
 PlatformWindowFb::PlatformWindowFb(PlatformWindowDelegate* delegate,
-                                   SurfaceFactoryFb* surface_factory,
+                                   PlatformWindowManager* window_manager,
                                    EventFactoryEvdev* event_factory,
                                    const gfx::Rect& bounds)
     : delegate_(delegate)
-    , surface_factory_(surface_factory)
+    , window_manager_(window_manager)
     , event_factory_(event_factory)
     , bounds_(bounds) {
-  window_id_ = surface_factory_->AddWindow(this);
+  window_id_ = window_manager_->AddWindow(this);
   delegate_->OnAcceleratedWidgetAvailable(window_id_, 1.f);
   ui::PlatformEventSource::GetInstance()->AddPlatformEventDispatcher(this);
 }
 
 PlatformWindowFb::~PlatformWindowFb() {
   ui::PlatformEventSource::GetInstance()->RemovePlatformEventDispatcher(this);
-  surface_factory_->RemoveWindow(window_id_, this);
+  window_manager_->RemoveWindow(window_id_, this);
 }
 
 gfx::Rect PlatformWindowFb::GetBounds() {

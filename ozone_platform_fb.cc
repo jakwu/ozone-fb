@@ -5,6 +5,7 @@
 #include "ozone_platform_fb.h"
 #include "platform_window_fb.h"
 #include "surface_factory_fb.h"
+#include "platform_window_manager.h"
 
 #include "base/command_line.h"
 #include "base/environment.h"
@@ -54,24 +55,25 @@ class OzonePlatformFb : public OzonePlatform {
   GpuPlatformSupportHost* GetGpuPlatformSupportHost() override {
     return gpu_platform_support_host_.get();
   }
-  scoped_ptr<SystemInputInjector> CreateSystemInputInjector() override {
+  std::unique_ptr<SystemInputInjector> CreateSystemInputInjector() override {
     return nullptr;  // no input injection support.
   }
-  scoped_ptr<PlatformWindow> CreatePlatformWindow(
+  std::unique_ptr<PlatformWindow> CreatePlatformWindow(
       PlatformWindowDelegate* delegate,
       const gfx::Rect& bounds) override {
-    return make_scoped_ptr<PlatformWindow>(
+    return base::WrapUnique<PlatformWindow>(
         new PlatformWindowFb(delegate,
-                             surface_factory_ozone_.get(),
+                             window_manager_.get(),
                              event_factory_ozone_.get(),
                              bounds));
   }
-  scoped_ptr<NativeDisplayDelegate> CreateNativeDisplayDelegate() override {
-    return make_scoped_ptr(new NativeDisplayDelegateOzone());
+  std::unique_ptr<NativeDisplayDelegate> CreateNativeDisplayDelegate() override {
+    return base::WrapUnique(new NativeDisplayDelegateOzone());
   }
 
   void InitializeUI() override {
-    surface_factory_ozone_.reset(new SurfaceFactoryFb());
+    window_manager_.reset(new PlatformWindowManager());
+    surface_factory_ozone_.reset(new SurfaceFactoryFb(window_manager_.get()));
     surface_factory_ozone_->Initialize(fb_dev_);
     // This unbreaks tests that create their own.
     KeyboardLayoutEngineManager::SetKeyboardLayoutEngine(
@@ -81,24 +83,26 @@ class OzonePlatformFb : public OzonePlatform {
         NULL, device_manager_.get(),
         KeyboardLayoutEngineManager::GetKeyboardLayoutEngine()));
     overlay_manager_.reset(new StubOverlayManager());
-    //cursor_factory_ozone_.reset(new BitmapCursorFactoryOzone);
     cursor_factory_ozone_.reset(new CursorFactoryOzone);
     gpu_platform_support_host_.reset(CreateStubGpuPlatformSupportHost());
   }
 
   void InitializeGPU() override {
+    if (!surface_factory_ozone_)
+      surface_factory_ozone_.reset(new SurfaceFactoryFb());
     gpu_platform_support_.reset(CreateStubGpuPlatformSupport());
   }
 
  private:
   std::string fb_dev_;
-  scoped_ptr<DeviceManager> device_manager_;
-  scoped_ptr<EventFactoryEvdev> event_factory_ozone_;
-  scoped_ptr<SurfaceFactoryFb> surface_factory_ozone_;
-  scoped_ptr<CursorFactoryOzone> cursor_factory_ozone_;
-  scoped_ptr<GpuPlatformSupport> gpu_platform_support_;
-  scoped_ptr<GpuPlatformSupportHost> gpu_platform_support_host_;
-  scoped_ptr<OverlayManagerOzone> overlay_manager_;
+  std::unique_ptr<PlatformWindowManager> window_manager_;
+  std::unique_ptr<DeviceManager> device_manager_;
+  std::unique_ptr<EventFactoryEvdev> event_factory_ozone_;
+  std::unique_ptr<SurfaceFactoryFb> surface_factory_ozone_;
+  std::unique_ptr<CursorFactoryOzone> cursor_factory_ozone_;
+  std::unique_ptr<GpuPlatformSupport> gpu_platform_support_;
+  std::unique_ptr<GpuPlatformSupportHost> gpu_platform_support_host_;
+  std::unique_ptr<OverlayManagerOzone> overlay_manager_;
 
   DISALLOW_COPY_AND_ASSIGN(OzonePlatformFb);
 };
