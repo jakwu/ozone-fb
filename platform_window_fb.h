@@ -15,12 +15,10 @@ namespace ui {
 
 class PlatformWindowDelegate;
 class EventFactoryEvdev;
-class PlatformWindowManager;
 
 class PlatformWindowFb : public PlatformWindow, public PlatformEventDispatcher {
  public:
   PlatformWindowFb(PlatformWindowDelegate* delegate,
-                   PlatformWindowManager* window_manager,
                    EventFactoryEvdev* event_factory,
                    const gfx::Rect& bounds);
   ~PlatformWindowFb() override;
@@ -49,7 +47,6 @@ class PlatformWindowFb : public PlatformWindow, public PlatformEventDispatcher {
 
  private:
   PlatformWindowDelegate* delegate_;
-  PlatformWindowManager* window_manager_;
   EventFactoryEvdev* event_factory_;
   gfx::Rect bounds_;
   gfx::AcceleratedWidget window_id_;

@@ -33,7 +33,6 @@ namespace ui {
 FrameBuffer::FrameBuffer()
   : fd_(-1), screensize_(0), data_(0)
 {
-
 }
 
 FrameBuffer::~FrameBuffer()
@@ -227,4 +226,12 @@ bool FrameBuffer::ApplyImageInfo(const SkImageInfo& image_info)
   return (ioctl(fd_, FBIOPUT_VSCREENINFO, &vinfo_) != 0);
 }
 
+char* FrameBuffer::GetData()
+{
+    int dummy = 0;
+    if (fd_ == -1)
+        return 0;
+    ioctl(fd_, FBIO_WAITFORVSYNC, &dummy);
+    return data_;
+}
 }

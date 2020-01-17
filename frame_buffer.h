@@ -17,7 +17,7 @@ public:
 
   bool Initialize(const std::string& fb_dev);
   const SkImageInfo& GetImageInfo() const { return image_info_; }
-  inline char* GetData() { return data_; }
+  char* GetData();
   size_t GetDataSize() const { return screensize_; }
 
 private:

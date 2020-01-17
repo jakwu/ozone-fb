@@ -5,29 +5,29 @@
 #ifndef UI_OZONE_PLATFORM_SURFACE_FACTORY_FB_H_
 #define UI_OZONE_PLATFORM_SURFACE_FACTORY_FB_H_
 
-#include "frame_buffer.h"
 
 #include "base/macros.h"
 #include "ui/ozone/public/surface_factory_ozone.h"
+#include "base/threading/thread_checker.h"
 
 #include <string>
 
 namespace ui {
 
-  class PlatformWindowManager;
+  class EglPlatform;
 
 class SurfaceFactoryFb : public SurfaceFactoryOzone {
  public:
-  SurfaceFactoryFb();
-  explicit SurfaceFactoryFb(PlatformWindowManager* window_manager);
+  explicit SurfaceFactoryFb(std::shared_ptr<EglPlatform> egl_platform);
   ~SurfaceFactoryFb() override;
-
-  // Initialize (mainly check that we have a place to write output to).
-  void Initialize(const std::string& fb_dev);
 
   // SurfaceFactoryOzone:
   std::unique_ptr<SurfaceOzoneCanvas> CreateCanvasForWidget(
       gfx::AcceleratedWidget w) override;
+
+  intptr_t GetNativeDisplay() override;
+  std::unique_ptr<SurfaceOzoneEGL> CreateEGLSurfaceForWidget(
+      gfx::AcceleratedWidget widget) override;
   bool LoadEGLGLES2Bindings(
       AddGLLibraryCallback add_gl_library,
       SetGLGetProcAddressProcCallback set_gl_get_proc_address) override;
@@ -37,9 +37,16 @@ class SurfaceFactoryFb : public SurfaceFactoryOzone {
       gfx::BufferFormat format,
       gfx::BufferUsage usage) override;
 
+
+  void SetBounds(const gfx::Rect& bounds) { bounds_ = bounds; }
+  intptr_t GetNativeWindow(gfx::AcceleratedWidget window_id);
+
  private:
-  PlatformWindowManager* window_manager_;
-  std::unique_ptr<FrameBuffer> frameBuffer_;
+  std::shared_ptr<EglPlatform> egl_platform_;
+  intptr_t native_display_;
+  intptr_t native_window_;
+  gfx::Rect bounds_;
+  base::ThreadChecker thread_checker_;
 
   DISALLOW_COPY_AND_ASSIGN(SurfaceFactoryFb);
 };

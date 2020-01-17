@@ -5,7 +5,7 @@
 #include "ozone_platform_fb.h"
 #include "platform_window_fb.h"
 #include "surface_factory_fb.h"
-#include "platform_window_manager.h"
+#include "egl_platform.h"
 
 #include "base/command_line.h"
 #include "base/macros.h"
@@ -35,8 +35,11 @@ const char kPlatformFbDev[] = "OZONE_FRAMEBUFFER_DEVICE";
 // This platform dumps images to a file for testing purposes.
 class OzonePlatformFb : public OzonePlatform {
  public:
-  OzonePlatformFb(const std::string& fb_dev) : fb_dev_(fb_dev) {}
-  ~OzonePlatformFb() override {}
+  OzonePlatformFb(std::shared_ptr<EglPlatform> egl_platform)
+      : egl_platform_(egl_platform) {
+  }
+  ~OzonePlatformFb() override {
+  }
 
   // OzonePlatform:
   ui::SurfaceFactoryOzone* GetSurfaceFactoryOzone() override {
@@ -65,7 +68,6 @@ class OzonePlatformFb : public OzonePlatform {
       const gfx::Rect& bounds) override {
     return base::WrapUnique<PlatformWindow>(
         new PlatformWindowFb(delegate,
-                             window_manager_.get(),
                              event_factory_ozone_.get(),
                              bounds));
   }
@@ -74,9 +76,9 @@ class OzonePlatformFb : public OzonePlatform {
   }
 
   void InitializeUI() override {
-    window_manager_.reset(new PlatformWindowManager());
-    surface_factory_ozone_.reset(new SurfaceFactoryFb(window_manager_.get()));
-    surface_factory_ozone_->Initialize(fb_dev_);
+    if (!surface_factory_ozone_) {
+      surface_factory_ozone_.reset(new SurfaceFactoryFb(egl_platform_));
+    }
     // This unbreaks tests that create their own.
     KeyboardLayoutEngineManager::SetKeyboardLayoutEngine(
         base::WrapUnique(new StubKeyboardLayoutEngine()));
@@ -91,13 +93,12 @@ class OzonePlatformFb : public OzonePlatform {
 
   void InitializeGPU() override {
     if (!surface_factory_ozone_)
-      surface_factory_ozone_.reset(new SurfaceFactoryFb());
+      surface_factory_ozone_.reset(new SurfaceFactoryFb(egl_platform_));
     gpu_platform_support_.reset(CreateStubGpuPlatformSupport());
   }
 
  private:
-  std::string fb_dev_;
-  std::unique_ptr<PlatformWindowManager> window_manager_;
+  std::shared_ptr<EglPlatform> egl_platform_;
   std::unique_ptr<DeviceManager> device_manager_;
   std::unique_ptr<EventFactoryEvdev> event_factory_ozone_;
   std::unique_ptr<SurfaceFactoryFb> surface_factory_ozone_;
@@ -111,22 +112,15 @@ class OzonePlatformFb : public OzonePlatform {
 
 }  // namespace
 
-OzonePlatform* CreateOzonePlatformFb() {
-  std::string fb_dev;
-  base::CommandLine* cmd = base::CommandLine::ForCurrentProcess();
-  
-  if (cmd->HasSwitch(switches::kOzoneDumpFile)) {
-    fb_dev = cmd->GetSwitchValueASCII(switches::kOzoneDumpFile);
-  }
-  if (fb_dev.empty()) {
-    std::unique_ptr<base::Environment> env(base::Environment::Create());
-    env->GetVar(kPlatformFbDev, &fb_dev);
-  }
-  if (fb_dev.empty()) {
-    fb_dev = "/dev/fb0";
-  }
+const char kDefaultEglSoname[] = "libEGL.so.1";
+const char kDefaultGlesSoname[] = "libGLESv2.so.2";
 
-  return new OzonePlatformFb(fb_dev);
+OzonePlatform* CreateOzonePlatformFb() {
+  std::shared_ptr<EglPlatform> egl_platform(
+    new Vivante::EglPlatform(0,
+                             kDefaultEglSoname,
+                             kDefaultGlesSoname));
+  return new OzonePlatformFb(egl_platform);
 }
 
 }  // namespace ui
