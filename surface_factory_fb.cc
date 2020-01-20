@@ -7,6 +7,7 @@
 #include "egl_platform.h"
 #include "frame_buffer.h"
 
+#include "base/command_line.h"
 #include "base/memory/ptr_util.h"
 #include "base/files/file_util.h"
 #include "base/threading/worker_pool.h"
@@ -24,16 +25,29 @@ namespace ui {
 
 namespace {
 
+const char kRendereWaitFor[] = "renderer-wait-for";
+
 //=============================================================================
 // SurfaceOzoneCanvasFb: Software rendering surface
 //=============================================================================
 
 class SurfaceOzoneCanvasFb : public SurfaceOzoneCanvas {
  public:
-  SurfaceOzoneCanvasFb(const std::string& fb_device) {
+  SurfaceOzoneCanvasFb(const std::string& fb_device)
+      : renderer_enabled_(false) {
     frame_buffer_.reset(new FrameBuffer());
     frame_buffer_->Initialize(fb_device);
     DCHECK(frame_buffer_->GetDataSize());
+
+    base::CommandLine* cmd = base::CommandLine::ForCurrentProcess();
+    if (cmd->HasSwitch(kRendereWaitFor)) {
+      renderer_wait_for_ = cmd->GetSwitchValueASCII(kRendereWaitFor);
+    }
+    renderer_enabled_ = renderer_wait_for_.empty();
+    if (!renderer_enabled_) {
+      LOG(INFO) << "Software renderer is disabled and is waiting for '"
+        << renderer_wait_for_ << "'";
+    }
   }
   ~SurfaceOzoneCanvasFb() override {}
 
@@ -44,9 +58,18 @@ class SurfaceOzoneCanvasFb : public SurfaceOzoneCanvas {
   }
   sk_sp<SkSurface> GetSurface() override { return surface_; }
   void PresentCanvas(const gfx::Rect& damage) override {
-    SkImageInfo info = frame_buffer_->GetImageInfo();
-    if (!surface_->getCanvas()->readPixels(info, frame_buffer_->GetData(), frame_buffer_->GetDataSize() / info.height(), 0, 0)) {
-      LOG(ERROR) << "Failed to read pixel data";
+    if (!renderer_enabled_) {
+      base::FilePath path(renderer_wait_for_);
+      renderer_enabled_ = base::PathExists(path);
+    }
+    if (renderer_enabled_) {
+      SkImageInfo info = frame_buffer_->GetImageInfo();
+      if (!surface_->getCanvas()->readPixels(
+          info, frame_buffer_->GetData(),
+          frame_buffer_->GetDataSize() / info.height(),
+          0, 0)) {
+        LOG(ERROR) << "Failed to read pixel data";
+      }
     }
   }
   std::unique_ptr<gfx::VSyncProvider> CreateVSyncProvider() override {
@@ -56,6 +79,8 @@ class SurfaceOzoneCanvasFb : public SurfaceOzoneCanvas {
  private:
   std::unique_ptr<FrameBuffer> frame_buffer_;
   sk_sp<SkSurface> surface_;
+  bool renderer_enabled_;
+  std::string renderer_wait_for_;
 };
 
 
