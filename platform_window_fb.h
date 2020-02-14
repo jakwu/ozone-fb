@@ -6,49 +6,29 @@
 #define UI_OZONE_FB_PLATFORM_WINDOW_FB_H_
 
 #include "base/macros.h"
-#include "ui/gfx/geometry/rect.h"
-#include "ui/gfx/native_widget_types.h"
-#include "ui/platform_window/platform_window.h"
 #include "ui/events/platform/platform_event_dispatcher.h"
+#include "ui/platform_window/platform_window_delegate.h"
+#include "ui/platform_window/stub/stub_window.h"
+
 
 namespace ui {
 
-class PlatformWindowDelegate;
 class EventFactoryEvdev;
 
-class PlatformWindowFb : public PlatformWindow, public PlatformEventDispatcher {
+class PlatformWindowFb : public StubWindow, public PlatformEventDispatcher {
  public:
   PlatformWindowFb(PlatformWindowDelegate* delegate,
                    EventFactoryEvdev* event_factory,
                    const gfx::Rect& bounds);
   ~PlatformWindowFb() override;
 
-  // PlatformWindow:
-  gfx::Rect GetBounds() override;
-  void SetBounds(const gfx::Rect& bounds) override;
-  void SetTitle(const base::string16& title) override;
-  void Show() override;
-  void Hide() override;
-  void Close() override;
-  void SetCapture() override;
-  void ReleaseCapture() override;
-  void ToggleFullscreen() override;
-  void Maximize() override;
-  void Minimize() override;
-  void Restore() override;
-  void SetCursor(PlatformCursor cursor) override;
-  void MoveCursorTo(const gfx::Point& location) override;
-  void ConfineCursorToBounds(const gfx::Rect& bounds) override;
-  PlatformImeController* GetPlatformImeController() override;
-
-  // PlatformEventDispatcher:
+  // PlatformEventDispatcher implementation:
   bool CanDispatchEvent(const PlatformEvent& event) override;
   uint32_t DispatchEvent(const PlatformEvent& event) override;
+  void MoveCursorTo(const gfx::Point& location) override;
 
  private:
-  PlatformWindowDelegate* delegate_;
   EventFactoryEvdev* event_factory_;
-  gfx::Rect bounds_;
   gfx::AcceleratedWidget window_id_;
 
   DISALLOW_COPY_AND_ASSIGN(PlatformWindowFb);

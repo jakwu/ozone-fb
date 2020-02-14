@@ -8,6 +8,9 @@
 #include "ui/gfx/geometry/rect.h"
 #include "ui/gl/gl_bindings.h"
 
+#include <string>
+
+
 namespace ui {
 
 class EglPlatform {
@@ -21,15 +24,15 @@ class EglPlatform {
   virtual void* GetEglLibrary() = 0;
   virtual void* GetGles2Library() = 0;
 
-  virtual intptr_t CreateDisplay(const gfx::Rect& rect) = 0;
-  virtual void DestroyDisplay(intptr_t display) = 0;
+  virtual EGLNativeDisplayType CreateDisplay(const gfx::Rect& rect = gfx::Rect()) = 0;
+  virtual void DestroyDisplay(EGLNativeDisplayType display) = 0;
 
-  virtual intptr_t CreateWindow(intptr_t display,
+  virtual EGLNativeWindowType CreateWindow(EGLNativeDisplayType display,
                                         const gfx::Rect& rect) = 0;
-  virtual void DestroyWindow(intptr_t window) = 0;
+  virtual void DestroyWindow(EGLNativeWindowType window) = 0;
 
-  virtual std::string getEglSoName() const = 0;
-  virtual std::string getGled2SoName() const = 0;
+  virtual std::string GetEglSoName() const = 0;
+  virtual std::string GetGled2SoName() const = 0;
 
   virtual int32_t GetDisplayIndex() const = 0;
 };
@@ -61,15 +64,15 @@ class EglPlatform: public EglPlatformBase {
 
   virtual ~EglPlatform() {}
 
-  intptr_t CreateDisplay(const gfx::Rect& rect) override;
-  void DestroyDisplay(intptr_t display) override;
+  EGLNativeDisplayType CreateDisplay(const gfx::Rect& rect = gfx::Rect()) override;
+  void DestroyDisplay(EGLNativeDisplayType display) override;
 
-  intptr_t CreateWindow(intptr_t display,
-                                        const gfx::Rect& rect) override;
-  void DestroyWindow(intptr_t window) override;
+  EGLNativeWindowType CreateWindow(EGLNativeDisplayType display,
+                                   const gfx::Rect& rect) override;
+  void DestroyWindow(EGLNativeWindowType window) override;
 
-  std::string getEglSoName() const override { return egl_so_name_; }
-  std::string getGled2SoName() const override { return gles2_so_name_; }
+  std::string GetEglSoName() const override { return egl_so_name_; }
+  std::string GetGled2SoName() const override { return gles2_so_name_; }
 
   int GetDisplayIndex() const override { return display_index_; }
 

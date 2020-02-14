@@ -1,0 +1,48 @@
+# Copyright 2014 The Chromium Authors. All rights reserved.
+# Use of this source code is governed by a BSD-style license that can be
+# found in the LICENSE file.
+
+visibility = [ "//ui/ozone/*" ]
+
+source_set("fb") {
+  sources = [
+    "client_native_pixmap_factory_fb.cc",
+    "client_native_pixmap_factory_fb.h",
+    "ozone_platform_fb.cc",
+    "ozone_platform_fb.h",
+    "surface_factory_fb.cc",
+    "surface_factory_fb.h",
+    "platform_window_fb.cc",
+    "platform_window_fb.h",
+    "egl_platform.cc",
+    "egl_platform.h",
+    "frame_buffer.cc",
+    "frame_buffer.h",
+    "gl_ozone_egl_fb.cc",
+    "gl_ozone_egl_fb.h",
+    "gl_surface_fb.cc",
+    "gl_surface_fb.h",
+    "fb_screen.cc",
+    "fb_screen.h",
+
+  ]
+
+  defines = [ "OZONE_IMPLEMENTATION" ]
+
+  deps = [
+    "//base",
+    "//skia",
+    "//ui/base",
+    "//ui/base/ime",
+    "//ui/events",
+    "//ui/events/ozone:events_ozone",
+    "//ui/events/ozone:events_ozone_evdev",
+    "//ui/events/ozone:events_ozone_layout",
+    "//ui/events/platform",
+    "//ui/gfx/geometry",
+    "//ui/ozone:ozone_base",
+    "//ui/ozone/common",
+    "//ui/platform_window",
+    "//ui/platform_window/stub",
+  ]
+}

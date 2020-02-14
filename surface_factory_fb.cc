@@ -5,20 +5,19 @@
 #include "surface_factory_fb.h"
 #include "platform_window_fb.h"
 #include "egl_platform.h"
+#include "gl_ozone_egl_fb.h"
 #include "frame_buffer.h"
 
 #include "base/command_line.h"
 #include "base/memory/ptr_util.h"
 #include "base/files/file_util.h"
-#include "base/threading/worker_pool.h"
 #include "third_party/skia/include/core/SkCanvas.h"
 #include "third_party/skia/include/core/SkSurface.h"
 #include "ui/gfx/skia_util.h"
 #include "ui/gfx/vsync_provider.h"
-#include "ui/ozone/public/native_pixmap.h"
+#include "ui/gfx/buffer_format_util.h"
+#include "ui/gfx/native_pixmap.h"
 #include "ui/ozone/public/surface_ozone_canvas.h"
-#include "ui/ozone/public/surface_ozone_egl.h"
-#include "ui/ozone/common/egl_util.h"
 
 
 namespace ui {
@@ -84,78 +83,35 @@ class SurfaceOzoneCanvasFb : public SurfaceOzoneCanvas {
 };
 
 
-
-//=============================================================================
-// SurfaceOzoneEglFb: EGL surfave
-//=============================================================================
-
-class SurfaceOzoneEglFb : public SurfaceOzoneEGL {
- public:
-  SurfaceOzoneEglFb(gfx::AcceleratedWidget window_id,
-                    SurfaceFactoryFb& parent)
-      : window_id_(window_id)
-      , parent_(parent) {
-  }
-  ~SurfaceOzoneEglFb() override {
-  }
-
-  intptr_t GetNativeWindow() override
-  {
-    return parent_.GetNativeWindow(window_id_);
-  }
-
-  bool OnSwapBuffers() override { return true; }
-
-  void OnSwapBuffersAsync(const SwapCompletionCallback& callback) override {
-    callback.Run(gfx::SwapResult::SWAP_ACK);
-  }
-
-  bool ResizeNativeWindow(const gfx::Size& viewport_size) override {
-    return true;
-  }
-
-  std::unique_ptr<gfx::VSyncProvider> CreateVSyncProvider() override {
-    return nullptr;
-  }
-
-  void* /* EGLConfig */ GetEGLSurfaceConfig(
-      const EglConfigCallbacks& egl) override {
-    EGLint broken_props[] = {
-        EGL_RENDERABLE_TYPE, EGL_OPENGL_ES2_BIT,
-        EGL_SURFACE_TYPE, EGL_WINDOW_BIT,
-        EGL_NONE
-    };
-    return ChooseEGLConfig(egl, broken_props);
-  }
-
- private:
-  gfx::AcceleratedWidget window_id_;
-  SurfaceFactoryFb& parent_;
-};
-
-
 //=============================================================================
 // TestPixmap
 //=============================================================================
 
-class TestPixmap : public ui::NativePixmap {
+class TestPixmap : public gfx::NativePixmap {
  public:
-  TestPixmap(gfx::BufferFormat format) : format_(format) {}
+  explicit TestPixmap(gfx::BufferFormat format) : format_(format) {}
 
-  void* GetEGLClientBuffer() const override { return nullptr; }
-  int GetDmaBufFd() const override { return -1; }
-  int GetDmaBufPitch() const override { return 0; }
+  bool AreDmaBufFdsValid() const override { return false; }
+  int GetDmaBufFd(size_t plane) const override { return -1; }
+  uint32_t GetDmaBufPitch(size_t plane) const override { return 0; }
+  size_t GetDmaBufOffset(size_t plane) const override { return 0; }
+  size_t GetDmaBufPlaneSize(size_t plane) const override { return 0; }
+  uint64_t GetBufferFormatModifier() const override { return 0; }
   gfx::BufferFormat GetBufferFormat() const override { return format_; }
+  size_t GetNumberOfPlanes() const override {
+    return gfx::NumberOfPlanesForLinearBufferFormat(format_);
+  }
   gfx::Size GetBufferSize() const override { return gfx::Size(); }
+  uint32_t GetUniqueId() const override { return 0; }
   bool ScheduleOverlayPlane(gfx::AcceleratedWidget widget,
                             int plane_z_order,
                             gfx::OverlayTransform plane_transform,
                             const gfx::Rect& display_bounds,
-                            const gfx::RectF& crop_rect) override {
+                            const gfx::RectF& crop_rect,
+                            bool enable_blend,
+                            std::unique_ptr<gfx::GpuFence> gpu_fence) override {
     return true;
   }
-  void SetProcessingCallback(
-      const ProcessingCallback& processing_callback) override {}
   gfx::NativePixmapHandle ExportHandle() override {
     return gfx::NativePixmapHandle();
   }
@@ -175,87 +131,50 @@ class TestPixmap : public ui::NativePixmap {
 // SurfaceFactoryFb
 //=============================================================================
 
-SurfaceFactoryFb::SurfaceFactoryFb(std::shared_ptr<EglPlatform> egl_platform)
-  : egl_platform_(egl_platform)
-  , native_display_(0)
-  , native_window_(0) {
-  DCHECK(egl_platform.get());
+SurfaceFactoryFb::SurfaceFactoryFb() : SurfaceFactoryFb(nullptr) {}
+
+SurfaceFactoryFb::SurfaceFactoryFb(std::shared_ptr<EglPlatform> egl_platform) {
+  if (egl_platform) {
+    egl_implementation_ =
+        std::make_unique<GLOzoneEglFb>(egl_platform);
+  }
 }
 
 SurfaceFactoryFb::~SurfaceFactoryFb() {
 }
 
-intptr_t SurfaceFactoryFb::GetNativeWindow(gfx::AcceleratedWidget window_id) {
-  if (!native_window_) {
-    native_window_ = egl_platform_->CreateWindow(GetNativeDisplay(),
-      gfx::Rect(window_id >> 16, window_id & 0xFFFF));
-  }
-  DCHECK(native_window_);
-  return native_window_;
+std::vector<gl::GLImplementation> SurfaceFactoryFb::GetAllowedGLImplementations() {
+  std::vector<gl::GLImplementation> impls;
+  if (egl_implementation_)
+    impls.push_back(gl::kGLImplementationEGLGLES2);
+  return impls;
 }
 
+GLOzone* SurfaceFactoryFb::GetGLOzone(gl::GLImplementation implementation) {
+  switch (implementation) {
+    case gl::kGLImplementationEGLGLES2:
+      return egl_implementation_.get();
+    default:
+      break;
+  }
+  return nullptr;
+}
 
 std::unique_ptr<SurfaceOzoneCanvas> SurfaceFactoryFb::CreateCanvasForWidget(
-    gfx::AcceleratedWidget widget) {
+    gfx::AcceleratedWidget widget,
+    base::TaskRunner* task_runner) {
   std::stringstream ss;
-  ss << "/dev/fb" << egl_platform_->GetDisplayIndex();
+  ss << "/dev/fb" << egl_implementation_->GetDisplayIndex();
   return base::WrapUnique<SurfaceOzoneCanvas>(new SurfaceOzoneCanvasFb(ss.str()));
 }
 
-/// ELG
-
-intptr_t SurfaceFactoryFb::GetNativeDisplay() {
-  DCHECK(thread_checker_.CalledOnValidThread());
-  DCHECK(egl_platform_.get());
-  if (!native_display_) {
-    native_display_ = egl_platform_->CreateDisplay(bounds_);
-  }
-  DCHECK(native_display_);
-  return native_display_;
-}
-
-std::unique_ptr<SurfaceOzoneEGL>
-SurfaceFactoryFb::CreateEGLSurfaceForWidget(
-    gfx::AcceleratedWidget widget) {
-  DCHECK(thread_checker_.CalledOnValidThread());
-  return base::WrapUnique<SurfaceOzoneEGL>(
-      new SurfaceOzoneEglFb(widget, *this));
-}
-
-bool SurfaceFactoryFb::LoadEGLGLES2Bindings(
-    AddGLLibraryCallback add_gl_library,
-    SetGLGetProcAddressProcCallback set_gl_get_proc_address) {
-
-  base::NativeLibrary gles_library = egl_platform_->GetGles2Library();
-  base::NativeLibrary egl_library = egl_platform_->GetEglLibrary();
-
-  DCHECK(gles_library);
-  DCHECK(egl_library);
-
-  SurfaceFactoryOzone::GLGetProcAddressProc get_proc_address =
-      reinterpret_cast<SurfaceFactoryOzone::GLGetProcAddressProc>(
-          base::GetFunctionPointerFromNativeLibrary(egl_library,
-                                                    "eglGetProcAddress"));
-  if (!get_proc_address) {
-    LOG(ERROR) << "eglGetProcAddress not found.";
-    base::UnloadNativeLibrary(egl_library);
-    base::UnloadNativeLibrary(gles_library);
-    return false;
-  }
-
-  set_gl_get_proc_address.Run(get_proc_address);
-  add_gl_library.Run(egl_library);
-  add_gl_library.Run(gles_library);
-
-  return true;
-}
-
-scoped_refptr<NativePixmap> SurfaceFactoryFb::CreateNativePixmap(
+scoped_refptr<gfx::NativePixmap> SurfaceFactoryFb::CreateNativePixmap(
     gfx::AcceleratedWidget widget,
+    VkDevice vk_device,
     gfx::Size size,
     gfx::BufferFormat format,
     gfx::BufferUsage usage) {
-  return new TestPixmap(format);
+  return base::MakeRefCounted<TestPixmap>(format);
 }
 
 }  // namespace ui

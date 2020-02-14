@@ -204,21 +204,6 @@ bool FrameBuffer::ApplyImageInfo(const SkImageInfo& image_info)
       vinfo_.transp.length = 8;
     }
     break;
-  case kIndex_8_SkColorType:
-    {
-      vinfo_.blue.offset = 0;
-      vinfo_.blue.length = 0;
-
-      vinfo_.green.offset = 0;
-      vinfo_.green.length = 0;
-
-      vinfo_.red.offset = 0;
-      vinfo_.red.length = 0;
-
-      vinfo_.transp.offset = 0;
-      vinfo_.transp.length = 0;
-    }
-    break;
   }
 
   dump_screeninfo("Applying", vinfo_);

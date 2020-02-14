@@ -6,13 +6,12 @@
 #include "platform_window_fb.h"
 #include "surface_factory_fb.h"
 #include "egl_platform.h"
+#include "fb_screen.h"
 
-#include "base/command_line.h"
 #include "base/macros.h"
 #include "base/memory/ptr_util.h"
 #include "base/environment.h"
 #include "ui/ozone/public/cursor_factory_ozone.h"
-#include "ui/ozone/public/gpu_platform_support.h"
 #include "ui/ozone/public/gpu_platform_support_host.h"
 #include "ui/events/ozone/device/device_manager.h"
 #include "ui/events/ozone/evdev/event_factory_evdev.h"
@@ -20,15 +19,15 @@
 #include "ui/events/ozone/layout/stub/stub_keyboard_layout_engine.h"
 #include "ui/ozone/public/ozone_platform.h"
 #include "ui/ozone/common/stub_overlay_manager.h"
-#include "ui/ozone/common/native_display_delegate_ozone.h"
 #include "ui/ozone/public/ozone_switches.h"
+#include "ui/base/ime/input_method_minimal.h"
+#include "ui/platform_window/platform_window_init_properties.h"
+#include "ui/display/types/native_display_delegate.h"
 
 
 namespace ui {
 
 namespace {
-
-const char kPlatformFbDev[] = "OZONE_FRAMEBUFFER_DEVICE";
 
 // OzonePlatform for testing
 //
@@ -43,67 +42,69 @@ class OzonePlatformFb : public OzonePlatform {
 
   // OzonePlatform:
   ui::SurfaceFactoryOzone* GetSurfaceFactoryOzone() override {
-    return surface_factory_ozone_.get();
+    return surface_factory_.get();
   }
   OverlayManagerOzone* GetOverlayManager() override {
     return overlay_manager_.get();
   }
   CursorFactoryOzone* GetCursorFactoryOzone() override {
-    return cursor_factory_ozone_.get();
+    return cursor_factory_.get();
   }
   InputController* GetInputController() override {
-    return event_factory_ozone_->input_controller();
-  }
-  GpuPlatformSupport* GetGpuPlatformSupport() override {
-    return gpu_platform_support_.get();
+    return event_factory_->input_controller();
   }
   GpuPlatformSupportHost* GetGpuPlatformSupportHost() override {
     return gpu_platform_support_host_.get();
   }
   std::unique_ptr<SystemInputInjector> CreateSystemInputInjector() override {
-    return nullptr;  // no input injection support.
+    return event_factory_->CreateSystemInputInjector();
   }
-  std::unique_ptr<PlatformWindow> CreatePlatformWindow(
+  std::unique_ptr<PlatformWindowBase> CreatePlatformWindow(
       PlatformWindowDelegate* delegate,
-      const gfx::Rect& bounds) override {
-    return base::WrapUnique<PlatformWindow>(
-        new PlatformWindowFb(delegate,
-                             event_factory_ozone_.get(),
-                             bounds));
+      PlatformWindowInitProperties properties) override {
+    return std::make_unique<PlatformWindowFb>(delegate,
+      event_factory_.get(), properties.bounds);
   }
-  std::unique_ptr<NativeDisplayDelegate> CreateNativeDisplayDelegate() override {
-    return base::WrapUnique(new NativeDisplayDelegateOzone());
+  std::unique_ptr<display::NativeDisplayDelegate> CreateNativeDisplayDelegate()
+      override {
+    return nullptr;
+  }
+  std::unique_ptr<PlatformScreen> CreateScreen() override {
+    return std::make_unique<FbScreen>();
+  }
+  std::unique_ptr<InputMethod> CreateInputMethod(
+      internal::InputMethodDelegate* delegate) override {
+    return std::make_unique<InputMethodMinimal>(delegate);
   }
 
-  void InitializeUI() override {
-    if (!surface_factory_ozone_) {
-      surface_factory_ozone_.reset(new SurfaceFactoryFb(egl_platform_));
-    }
-    // This unbreaks tests that create their own.
-    KeyboardLayoutEngineManager::SetKeyboardLayoutEngine(
-        base::WrapUnique(new StubKeyboardLayoutEngine()));
+  void InitializeUI(const InitParams& params) override {
     device_manager_ = CreateDeviceManager();
-    event_factory_ozone_.reset(new EventFactoryEvdev(
-        NULL, device_manager_.get(),
-        KeyboardLayoutEngineManager::GetKeyboardLayoutEngine()));
-    overlay_manager_.reset(new StubOverlayManager());
-    cursor_factory_ozone_.reset(new CursorFactoryOzone);
+    cursor_factory_ = std::make_unique<CursorFactoryOzone>();
     gpu_platform_support_host_.reset(CreateStubGpuPlatformSupportHost());
+    overlay_manager_ = std::make_unique<StubOverlayManager>();
+
+    KeyboardLayoutEngineManager::SetKeyboardLayoutEngine(
+        std::make_unique<StubKeyboardLayoutEngine>());
+    ui::KeyboardLayoutEngineManager::GetKeyboardLayoutEngine()
+        ->SetCurrentLayoutByName("us");
+
+    event_factory_ = std::make_unique<EventFactoryEvdev>(
+        nullptr, device_manager_.get(),
+        KeyboardLayoutEngineManager::GetKeyboardLayoutEngine());
+
+    surface_factory_ = std::make_unique<SurfaceFactoryFb>(egl_platform_);
   }
 
-  void InitializeGPU() override {
-    if (!surface_factory_ozone_)
-      surface_factory_ozone_.reset(new SurfaceFactoryFb(egl_platform_));
-    gpu_platform_support_.reset(CreateStubGpuPlatformSupport());
+  void InitializeGPU(const InitParams& params) override {
+    surface_factory_ = std::make_unique<SurfaceFactoryFb>(egl_platform_);
   }
 
  private:
   std::shared_ptr<EglPlatform> egl_platform_;
   std::unique_ptr<DeviceManager> device_manager_;
-  std::unique_ptr<EventFactoryEvdev> event_factory_ozone_;
-  std::unique_ptr<SurfaceFactoryFb> surface_factory_ozone_;
-  std::unique_ptr<CursorFactoryOzone> cursor_factory_ozone_;
-  std::unique_ptr<GpuPlatformSupport> gpu_platform_support_;
+  std::unique_ptr<EventFactoryEvdev> event_factory_;
+  std::unique_ptr<SurfaceFactoryFb> surface_factory_;
+  std::unique_ptr<CursorFactoryOzone> cursor_factory_;
   std::unique_ptr<GpuPlatformSupportHost> gpu_platform_support_host_;
   std::unique_ptr<OverlayManagerOzone> overlay_manager_;
 
