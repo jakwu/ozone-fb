@@ -10,6 +10,7 @@
 #include "base/command_line.h"
 #include "base/memory/ptr_util.h"
 #include "base/files/file_util.h"
+#include "base/files/file_path_watcher.h"
 #include "base/threading/worker_pool.h"
 #include "third_party/skia/include/core/SkCanvas.h"
 #include "third_party/skia/include/core/SkSurface.h"
@@ -34,7 +35,7 @@ const char kRendereWaitFor[] = "renderer-wait-for";
 class SurfaceOzoneCanvasFb : public SurfaceOzoneCanvas {
  public:
   SurfaceOzoneCanvasFb(const std::string& fb_device)
-      : renderer_enabled_(false) {
+      : rendering_allowed_(false) {
     frame_buffer_.reset(new FrameBuffer());
     frame_buffer_->Initialize(fb_device);
     DCHECK(frame_buffer_->GetDataSize());
@@ -43,10 +44,14 @@ class SurfaceOzoneCanvasFb : public SurfaceOzoneCanvas {
     if (cmd->HasSwitch(kRendereWaitFor)) {
       renderer_wait_for_ = cmd->GetSwitchValueASCII(kRendereWaitFor);
     }
-    renderer_enabled_ = renderer_wait_for_.empty();
-    if (!renderer_enabled_) {
+    rendering_allowed_ = renderer_wait_for_.empty();
+    if (!rendering_allowed_) {
       LOG(INFO) << "Software renderer is disabled and is waiting for '"
         << renderer_wait_for_ << "'";
+      file_watcher_.reset(new base::FilePathWatcher());
+      file_watcher_->Watch(base::FilePath(renderer_wait_for_), false,
+        base::Bind(&SurfaceOzoneCanvasFb::OnWaitForFileChanged,
+            base::Unretained(this)));
     }
   }
   ~SurfaceOzoneCanvasFb() override {}
@@ -58,18 +63,9 @@ class SurfaceOzoneCanvasFb : public SurfaceOzoneCanvas {
   }
   sk_sp<SkSurface> GetSurface() override { return surface_; }
   void PresentCanvas(const gfx::Rect& damage) override {
-    if (!renderer_enabled_) {
-      base::FilePath path(renderer_wait_for_);
-      renderer_enabled_ = base::PathExists(path);
-    }
-    if (renderer_enabled_) {
-      SkImageInfo info = frame_buffer_->GetImageInfo();
-      if (!surface_->getCanvas()->readPixels(
-          info, frame_buffer_->GetData(),
-          frame_buffer_->GetDataSize() / info.height(),
-          0, 0)) {
-        LOG(ERROR) << "Failed to read pixel data";
-      }
+    base::AutoLock lock(lock_);
+    if (rendering_allowed_) {
+      PaintCanvas();
     }
   }
   std::unique_ptr<gfx::VSyncProvider> CreateVSyncProvider() override {
@@ -77,10 +73,31 @@ class SurfaceOzoneCanvasFb : public SurfaceOzoneCanvas {
   }
 
  private:
+  void OnWaitForFileChanged(const base::FilePath& path, bool error) {
+    base::AutoLock lock(lock_);
+    rendering_allowed_ = base::PathExists(path);
+    if (rendering_allowed_) {
+      LOG(INFO) << "Rendering enabled";
+      PaintCanvas();
+    } else {
+      LOG(INFO) << "Rendering disabled";
+    }
+  }
+  void PaintCanvas() {
+    SkImageInfo info = frame_buffer_->GetImageInfo();
+    if (!surface_->getCanvas()->readPixels(
+        info, frame_buffer_->GetData(),
+        frame_buffer_->GetDataSize() / info.height(),
+        0, 0)) {
+    LOG(ERROR) << "Failed to read pixel data";
+    }
+  }
   std::unique_ptr<FrameBuffer> frame_buffer_;
   sk_sp<SkSurface> surface_;
-  bool renderer_enabled_;
+  bool rendering_allowed_;
   std::string renderer_wait_for_;
+  std::unique_ptr<base::FilePathWatcher> file_watcher_;
+  base::Lock lock_;
 };
 
 
